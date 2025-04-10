@@ -13,6 +13,7 @@ users = [
     ("user2", "securepass"),
     ("admin", "adminpass"),
     ("testuser", "test1234"),
+    ("azizhajlaoui5@gmail.com","azizaziz"),
 ]
 
 # Function to insert users with hashed passwords

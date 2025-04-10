@@ -9,15 +9,15 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-# Function to generate a random verification code
+
 def generate_verification_code(length=6):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for i in range(length))
 
 
-# Function to send the verification email with the code
+
 def send_verification_email(to_email, verification_code):
-    from_email = "azizhajlaoui2@gmail.com"  # Replace with your Gmail address
+    from_email = "azizhajlaoui2@gmail.com"  
     from_password = "emox xfdo nbuw ipoz"  
 
     subject = "Password Reset Verification Code"
@@ -41,12 +41,12 @@ def send_verification_email(to_email, verification_code):
         print(f"Failed to send email: {e}")
 
 
-# Initialize Tkinter window
+
 root = tk.Tk()
 root.title("Login System")
 root.geometry("300x400")
 
-# ========== LOGIN FRAME ==========
+
 login_frame = tk.Frame(root)
 
 tk.Label(login_frame, text="Login", font=("Arial", 14, "bold")).pack()
@@ -67,7 +67,7 @@ def login():
 
 tk.Button(login_frame, text="Login", command=login).pack()
 
-# Forgot Password functionality
+
 def open_reset_window():
     reset_window = tk.Toplevel(root)
     reset_window.title("Reset Password")
@@ -77,7 +77,7 @@ def open_reset_window():
     reset_email = tk.Entry(reset_window)
     reset_email.pack()
 
-    # Generate a random verification code
+
     verification_code = generate_verification_code()
 
     def send_code():
@@ -86,7 +86,7 @@ def open_reset_window():
         send_verification_email(email, verification_code)
         tk.Label(reset_window, text="Code sent! Enter it below:").pack()
 
-        # Verification code entry
+
         verification_entry = tk.Entry(reset_window)
         verification_entry.pack()
 
@@ -116,12 +116,12 @@ def open_reset_window():
 
 tk.Button(login_frame, text="Forgot Password?", command=open_reset_window).pack()
 
-# Register Button
+
 tk.Button(login_frame, text="Register", command=lambda: switch_frames(login_frame, register_frame)).pack()
 
 login_frame.pack()
 
-# ========== REGISTER FRAME ==========
+
 register_frame = tk.Frame(root)
 
 tk.Label(register_frame, text="Register", font=("Arial", 14, "bold")).pack()
@@ -146,5 +146,5 @@ def register():
 tk.Button(register_frame, text="Register", command=register).pack()
 tk.Button(register_frame, text="Back to Login", command=lambda: switch_frames(register_frame, login_frame)).pack()
 
-# Start Tkinter main loop
+
 root.mainloop()
