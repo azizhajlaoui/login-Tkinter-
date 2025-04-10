@@ -3,6 +3,10 @@ from tkinter import ttk, messagebox
 import sqlite3
 from tkinter import *
 from tkmacosx import Button
+import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Database connection function (SQLite3)
 def connection():
@@ -188,6 +192,63 @@ def login_user():
     else:
         messagebox.showerror("Error", "Invalid username/email or password")
 
+# Forgot Password Function
+def forgot_password():
+    def send_reset_email():
+        email = email_entry.get()
+
+        conn = connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+        user = cursor.fetchone()
+
+        if user:
+            new_password = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=8))
+            cursor.execute("UPDATE users SET password=? WHERE email=?", (new_password, email))
+            conn.commit()
+            conn.close()
+
+            # Send the new password via Gmail
+            send_email(email, new_password)
+
+            messagebox.showinfo("Success", "A new password has been sent to your email.")
+            reset_frame.destroy()
+            login_frame.pack(padx=20, pady=20)
+        else:
+            messagebox.showerror("Error", "Email not found in the system.")
+
+    def send_email(to_email, new_password):
+        from_email = 'azizhajlaoui2@gmail.com'
+        from_password = 'ogpzgwkpwsgzajxv'  # It's recommended to use app-specific passwords for Gmail
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = 'Password Reset'
+        body = f'Your new password is: {new_password}'
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(from_email, from_password)
+            text = msg.as_string()
+            server.sendmail(from_email, to_email, text)
+            server.quit()
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+    reset_frame = tk.Frame(root)
+    email_label = Label(reset_frame, text="Enter your email", font=('Arial', 12))
+    email_label.grid(row=0, column=0, padx=50, pady=10)
+    email_entry = Entry(reset_frame, font=('Arial', 12))
+    email_entry.grid(row=0, column=1, padx=50, pady=10)
+
+    send_button = Button(reset_frame, text="Send New Password", font=('Arial', 12), command=send_reset_email)
+    send_button.grid(row=1, column=0, columnspan=2, pady=20)
+
+    reset_frame.pack(padx=20, pady=20)
+
 # Tkinter Sign-Up Window
 def signup_user():
     def create_account():
@@ -258,6 +319,9 @@ login_button.grid(row=3, column=0, columnspan=2, pady=20)
 
 signup_button = Button(login_frame, text="Sign Up", font=('Arial', 12), command=signup_user)
 signup_button.grid(row=4, column=0, columnspan=2, pady=20)
+
+forgot_button = Button(login_frame, text="Forgot Password?", font=('Arial', 12), command=forgot_password)
+forgot_button.grid(row=5, column=0, columnspan=2, pady=10)
 
 login_frame.pack(padx=20, pady=20)
 
