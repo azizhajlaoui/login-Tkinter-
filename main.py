@@ -1,150 +1,215 @@
 import tkinter as tk
-from tkinter import messagebox
-from auth import register_user, verify_login, reset_password
-from ui_helpers import create_entry, clear_entries, switch_frames
-import random
-import string
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from tkinter import ttk, messagebox
+import sqlite3
+from tkinter import *
+from tkmacosx import Button
 
+# Database connection function (SQLite3)
+def connection():
+    conn = sqlite3.connect('login_system.sqlite')  # Connect to the SQLite database
+    return conn
 
+# Function to refresh the Treeview (display books in the table)
+def refreshTable():
+    for data in my_tree.get_children():
+        my_tree.delete(data)
 
-def generate_verification_code(length=6):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for i in range(length))
+    for array in read_books():
+        my_tree.insert(parent='', index='end', iid=array[0], text="", values=(array), tag="orow")
 
+    my_tree.tag_configure('orow', background='#EEEEEE', font=('Arial', 12))
+    my_tree.grid(row=8, column=0, columnspan=5, rowspan=11, padx=10, pady=20)
 
+# Function to read books from the database
+def read_books():
+    conn = connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM books")
+    results = cursor.fetchall()
+    conn.close()
+    return results
 
-def send_verification_email(to_email, verification_code):
-    from_email = "azizhajlaoui2@gmail.com"  
-    from_password = "emox xfdo nbuw ipoz"  
+# Add a new book to the database
+def add_book():
+    title = str(title_entry.get())
+    author = str(author_entry.get())
+    genre = str(genre_entry.get())
+    year = str(year_entry.get())
 
-    subject = "Password Reset Verification Code"
-    body = f"Your verification code is: {verification_code}"
+    if not title or not author or not genre or not year:
+        messagebox.showinfo("Error", "All fields must be filled")
+        return
+    else:
+        try:
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO books (title, author, genre, year) VALUES (?, ?, ?, ?)",
+                           (title, author, genre, year))
+            conn.commit()
+            conn.close()
+            title_entry.delete(0, END)
+            author_entry.delete(0, END)
+            genre_entry.delete(0, END)
+            year_entry.delete(0, END)
+        except:
+            messagebox.showinfo("Error", "An error occurred while adding the book.")
+            return
 
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    refreshTable()
 
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, from_password)
-        text = msg.as_string()
-        server.sendmail(from_email, to_email, text)
-        server.quit()
-        print(f"Verification email sent to {to_email}")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+# Update an existing book
+def update_book():
+    selected_item = my_tree.selection()[0]
+    book_id = my_tree.item(selected_item)['values'][0]
 
+    title = str(title_entry.get())
+    author = str(author_entry.get())
+    genre = str(genre_entry.get())
+    year = str(year_entry.get())
 
+    if not title or not author or not genre or not year:
+        messagebox.showinfo("Error", "All fields must be filled")
+        return
+    else:
+        try:
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE books SET title=?, author=?, genre=?, year=? WHERE book_id=?",
+                           (title, author, genre, year, book_id))
+            conn.commit()
+            conn.close()
+            title_entry.delete(0, END)
+            author_entry.delete(0, END)
+            genre_entry.delete(0, END)
+            year_entry.delete(0, END)
+        except:
+            messagebox.showinfo("Error", "An error occurred while updating the book.")
+            return
 
+    refreshTable()
+
+# Delete a selected book
+def delete_book():
+    selected_item = my_tree.selection()[0]
+    book_id = my_tree.item(selected_item)['values'][0]
+
+    decision = messagebox.askquestion("Warning", "Are you sure you want to delete this book?")
+    if decision != "yes":
+        return
+    else:
+        try:
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM books WHERE book_id=?", (book_id,))
+            conn.commit()
+            conn.close()
+        except:
+            messagebox.showinfo("Error", "An error occurred while deleting the book.")
+            return
+
+    refreshTable()
+
+# Tkinter Login Window
+def login_user():
+    username = username_entry.get()
+    password = password_entry.get()
+
+    conn = connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+    result = cursor.fetchone()
+
+    if result:
+        messagebox.showinfo("Success", "Login successful!")
+        login_frame.destroy()
+        open_library_window()
+    else:
+        messagebox.showerror("Error", "Invalid username or password")
+    
+# Open Library Registration Window
+def open_library_window():
+    global my_tree
+    global title_entry, author_entry, genre_entry, year_entry
+
+    library_frame = tk.Frame(root)
+
+    # Labels and Entries for Book Management
+    title_label = Label(library_frame, text="Title", font=('Arial', 12))
+    title_label.grid(row=0, column=0, padx=10, pady=10)
+    title_entry = Entry(library_frame, font=('Arial', 12))
+    title_entry.grid(row=0, column=1, padx=10, pady=10)
+
+    author_label = Label(library_frame, text="Author", font=('Arial', 12))
+    author_label.grid(row=1, column=0, padx=10, pady=10)
+    author_entry = Entry(library_frame, font=('Arial', 12))
+    author_entry.grid(row=1, column=1, padx=10, pady=10)
+
+    genre_label = Label(library_frame, text="Genre", font=('Arial', 12))
+    genre_label.grid(row=2, column=0, padx=10, pady=10)
+    genre_entry = Entry(library_frame, font=('Arial', 12))
+    genre_entry.grid(row=2, column=1, padx=10, pady=10)
+
+    year_label = Label(library_frame, text="Year", font=('Arial', 12))
+    year_label.grid(row=3, column=0, padx=10, pady=10)
+    year_entry = Entry(library_frame, font=('Arial', 12))
+    year_entry.grid(row=3, column=1, padx=10, pady=10)
+
+    # Buttons for CRUD operations
+    add_button = Button(library_frame, text="Add Book", font=('Arial', 12), command=add_book)
+    add_button.grid(row=4, column=0, padx=10, pady=10)
+
+    update_button = Button(library_frame, text="Update Book", font=('Arial', 12), command=update_book)
+    update_button.grid(row=4, column=1, padx=10, pady=10)
+
+    delete_button = Button(library_frame, text="Delete Book", font=('Arial', 12), command=delete_book)
+    delete_button.grid(row=4, column=2, padx=10, pady=10)
+
+    # Treeview for displaying books
+    my_tree = ttk.Treeview(library_frame)
+    my_tree["columns"] = ("Book ID", "Title", "Author", "Genre", "Year")
+    my_tree.column("#0", width=0, stretch=NO)
+    my_tree.column("Book ID", anchor=W, width=100)
+    my_tree.column("Title", anchor=W, width=200)
+    my_tree.column("Author", anchor=W, width=150)
+    my_tree.column("Genre", anchor=W, width=100)
+    my_tree.column("Year", anchor=W, width=100)
+
+    my_tree.heading("Book ID", text="Book ID", anchor=W)
+    my_tree.heading("Title", text="Title", anchor=W)
+    my_tree.heading("Author", text="Author", anchor=W)
+    my_tree.heading("Genre", text="Genre", anchor=W)
+    my_tree.heading("Year", text="Year", anchor=W)
+
+    my_tree.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
+
+    refreshTable()
+
+    library_frame.pack(padx=20, pady=20)
+
+# Tkinter Root (Main Window)
 root = tk.Tk()
-root.title("Login System")
-root.geometry("300x400")
+root.title("Library Management System")
+root.geometry("800x600")
 
-
+# Login Frame
 login_frame = tk.Frame(root)
 
-tk.Label(login_frame, text="Login", font=("Arial", 14, "bold")).pack()
+login_label = Label(login_frame, text="Login", font=("Arial", 18, "bold"))
+login_label.grid(row=0, column=0, padx=50, pady=20)
 
-login_username = create_entry(login_frame, "Username:")
-login_password = create_entry(login_frame, "Password:", show_text="*")
+username_label = Label(login_frame, text="Username", font=('Arial', 12))
+username_label.grid(row=1, column=0, padx=50, pady=10)
+username_entry = Entry(login_frame, font=('Arial', 12))
+username_entry.grid(row=1, column=1, padx=50, pady=10)
 
-def login():
-    """Handles user login."""
-    username = login_username.get()
-    password = login_password.get()
+password_label = Label(login_frame, text="Password", font=('Arial', 12))
+password_label.grid(row=2, column=0, padx=50, pady=10)
+password_entry = Entry(login_frame, font=('Arial', 12), show='*')
+password_entry.grid(row=2, column=1, padx=50, pady=10)
 
-    if verify_login(username, password):
-        messagebox.showinfo("Login Success", f"Welcome {username}!")
-        clear_entries(login_username, login_password)
-    else:
-        messagebox.showerror("Login Failed", "Invalid username or password.")
+login_button = Button(login_frame, text="Login", font=('Arial', 12), command=login_user)
+login_button.grid(row=3, column=0, columnspan=2, pady=20)
 
-tk.Button(login_frame, text="Login", command=login).pack()
-
-
-def open_reset_window():
-    reset_window = tk.Toplevel(root)
-    reset_window.title("Reset Password")
-    reset_window.geometry("300x200")
-
-    tk.Label(reset_window, text="Enter Email for Verification:").pack()
-    reset_email = tk.Entry(reset_window)
-    reset_email.pack()
-
-
-    verification_code = generate_verification_code()
-
-    def send_code():
-        """Send verification code to the email."""
-        email = reset_email.get()
-        send_verification_email(email, verification_code)
-        tk.Label(reset_window, text="Code sent! Enter it below:").pack()
-
-
-        verification_entry = tk.Entry(reset_window)
-        verification_entry.pack()
-
-        def verify_code():
-            """Verify the entered code and reset password."""
-            entered_code = verification_entry.get()
-
-            if entered_code == verification_code:
-                tk.Label(reset_window, text="Code verified! Enter new password:").pack()
-                new_password_entry = tk.Entry(reset_window, show="*")
-                new_password_entry.pack()
-
-                def reset_new_password():
-                    """Reset the user's password."""
-                    new_password = new_password_entry.get()
-                    email = reset_email.get()
-                    messagebox.showinfo("Password Reset", reset_password(email, new_password))
-                    reset_window.destroy()
-
-                tk.Button(reset_window, text="Reset Password", command=reset_new_password).pack()
-            else:
-                messagebox.showerror("Error", "Invalid verification code!")
-
-        tk.Button(reset_window, text="Verify Code", command=verify_code).pack()
-
-    tk.Button(reset_window, text="Send Verification Code", command=send_code).pack()
-
-tk.Button(login_frame, text="Forgot Password?", command=open_reset_window).pack()
-
-
-tk.Button(login_frame, text="Register", command=lambda: switch_frames(login_frame, register_frame)).pack()
-
-login_frame.pack()
-
-
-register_frame = tk.Frame(root)
-
-tk.Label(register_frame, text="Register", font=("Arial", 14, "bold")).pack()
-
-reg_username = create_entry(register_frame, "Username:")
-reg_password = create_entry(register_frame, "Password:", show_text="*")
-reg_confirm_password = create_entry(register_frame, "Confirm Password:", show_text="*")
-
-def register():
-    """Handles user registration."""
-    username = reg_username.get()
-    password = reg_password.get()
-    confirm_password = reg_confirm_password.get()
-
-    if password != confirm_password:
-        messagebox.showerror("Error", "Passwords do not match!")
-        return
-
-    messagebox.showinfo("Registration", register_user(username, password))
-    clear_entries(reg_username, reg_password, reg_confirm_password)
-
-tk.Button(register_frame, text="Register", command=register).pack()
-tk.Button(register_frame, text="Back to Login", command=lambda: switch_frames(register_frame, login_frame)).pack()
-
+login_frame.pack(padx=20, pady=20)
 
 root.mainloop()
