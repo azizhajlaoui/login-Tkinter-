@@ -109,24 +109,7 @@ def delete_book():
 
     refreshTable()
 
-# Tkinter Login Window
-def login_user():
-    username = username_entry.get()
-    password = password_entry.get()
-
-    conn = connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
-    result = cursor.fetchone()
-
-    if result:
-        messagebox.showinfo("Success", "Login successful!")
-        login_frame.destroy()
-        open_library_window()
-    else:
-        messagebox.showerror("Error", "Invalid username or password")
-    
-# Open Library Registration Window
+# Function to open the Library Window after successful login
 def open_library_window():
     global my_tree
     global title_entry, author_entry, genre_entry, year_entry
@@ -186,6 +169,69 @@ def open_library_window():
 
     library_frame.pack(padx=20, pady=20)
 
+# Tkinter Login Window
+def login_user():
+    username_or_email = username_entry.get()
+    password = password_entry.get()
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    # Check if the entered value is a username or email
+    cursor.execute("SELECT * FROM users WHERE username=? OR email=?", (username_or_email, username_or_email))
+    result = cursor.fetchone()
+
+    if result and result[3] == password:  # result[3] corresponds to the 'password' column
+        messagebox.showinfo("Success", "Login successful!")
+        login_frame.destroy()
+        open_library_window()
+    else:
+        messagebox.showerror("Error", "Invalid username/email or password")
+
+# Tkinter Sign-Up Window
+def signup_user():
+    def create_account():
+        username = username_entry.get()
+        password = password_entry.get()
+        email = email_entry.get()
+
+        if not username or not password or not email:
+            messagebox.showinfo("Error", "All fields must be filled")
+            return
+
+        try:
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO users (username, password, email) VALUES (?, ?, ?)", (username, password, email))
+            conn.commit()
+            conn.close()
+            messagebox.showinfo("Success", "Account created successfully!")
+            signup_frame.destroy()
+            login_frame.pack(padx=20, pady=20)
+        except Exception as e:
+            messagebox.showinfo("Error", f"An error occurred: {str(e)}")
+
+    signup_frame = tk.Frame(root)
+    username_label = Label(signup_frame, text="Username", font=('Arial', 12))
+    username_label.grid(row=0, column=0, padx=50, pady=10)
+    username_entry = Entry(signup_frame, font=('Arial', 12))
+    username_entry.grid(row=0, column=1, padx=50, pady=10)
+
+    password_label = Label(signup_frame, text="Password", font=('Arial', 12))
+    password_label.grid(row=1, column=0, padx=50, pady=10)
+    password_entry = Entry(signup_frame, font=('Arial', 12), show='*')
+    password_entry.grid(row=1, column=1, padx=50, pady=10)
+
+    email_label = Label(signup_frame, text="Email", font=('Arial', 12))
+    email_label.grid(row=2, column=0, padx=50, pady=10)
+    email_entry = Entry(signup_frame, font=('Arial', 12))
+    email_entry.grid(row=2, column=1, padx=50, pady=10)
+
+    signup_button = Button(signup_frame, text="Create Account", font=('Arial', 12), command=create_account)
+    signup_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+    signup_frame.pack(padx=20, pady=20)
+
 # Tkinter Root (Main Window)
 root = tk.Tk()
 root.title("Library Management System")
@@ -197,7 +243,7 @@ login_frame = tk.Frame(root)
 login_label = Label(login_frame, text="Login", font=("Arial", 18, "bold"))
 login_label.grid(row=0, column=0, padx=50, pady=20)
 
-username_label = Label(login_frame, text="Username", font=('Arial', 12))
+username_label = Label(login_frame, text="Username or Email", font=('Arial', 12))
 username_label.grid(row=1, column=0, padx=50, pady=10)
 username_entry = Entry(login_frame, font=('Arial', 12))
 username_entry.grid(row=1, column=1, padx=50, pady=10)
@@ -209,6 +255,9 @@ password_entry.grid(row=2, column=1, padx=50, pady=10)
 
 login_button = Button(login_frame, text="Login", font=('Arial', 12), command=login_user)
 login_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+signup_button = Button(login_frame, text="Sign Up", font=('Arial', 12), command=signup_user)
+signup_button.grid(row=4, column=0, columnspan=2, pady=20)
 
 login_frame.pack(padx=20, pady=20)
 
